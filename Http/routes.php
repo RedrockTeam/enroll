@@ -27,15 +27,15 @@ Route::group(['prefix' => 'enroll'], function() {
     // 表单api
     Route::group(['prefix' => 'api', 'middleware' => [/** 'enroll.auth',  */'enroll.hold']], function () {
         // 安装模块
-        Route::any('/setup', 'SetupController@create');
+        Route::post('/setup', 'SetupController@create');
         // DataTable
-        Route::any('/read/{dept}', 'Table\\ViewController@read')->where('dept', '[0-9]{1,2}|all|recycle');
-        Route::any('/handle', 'Table\\EditController@handle');
-        Route::any('/notify', 'Table\\ViewController@notify');
-        Route::any('/update', 'Table\\EditController@update');
-        Route::any('/checkout', 'Table\\EditController@checkout');
+        Route::post('/read/{dept}', 'Table\\ViewController@read')->where('dept', '[0-9]{1,2}|all|recycle');
+        Route::post('/handle', 'Table\\EditController@handle');
+        Route::post('/notify', 'Table\\ViewController@notify');
+        Route::post('/update', 'Table\\EditController@update');
+        Route::post('/checkout', 'Table\\EditController@checkout');
         // 短信模块
-        Route::any('/sendSMS', 'SMSController@send');
+        Route::post('/sendSMS', 'SMSController@send');
 
         // 渲染视图
         Route::any('/view/setup', function () {
