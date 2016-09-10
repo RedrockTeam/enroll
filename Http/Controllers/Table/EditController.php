@@ -104,8 +104,8 @@ class EditController extends Controller
 
         $current = unserialize($structures['flow_structure'])[$oldCurrent + 1];
 
-//        if (Carbon::createFromFormat('Y-m-d', $current['time'])->diffInDays() > 0)
-//            return response()->json(['status' => -13, 'content' => '下一流程的预定开启时间还未到, 无法切换到下一流程']);
+        if (Carbon::createFromFormat('Y-m-d', $current['time'])->diffInDays() > 0)
+            return response()->json(['status' => -13, 'content' => '下一流程的预定开启时间还未到, 无法切换到下一流程']);
 
         // 保存下一报名流程
         if ((new DepartmentLog())->setDepartmentCurrentStep($id, array_merge($current, ['step' => $oldCurrent + 1]))) {

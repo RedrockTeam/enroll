@@ -16,7 +16,7 @@ class SetupCircuitByYear
      */
     public function handle($request, Closure $next)
     {
-        if (!$request->session()->has('is_admin')) {
+        if (!$request->session()->has('is_admin') && $request->hasCookie('enroll_master_credential')) {
             $department = $request->session()->get('user_info.dept_id');
             $circuit = (new \App\Modules\Enroll\Models\CircuitDesigns())->getDepartmentCurrentCircuit($department);
 
