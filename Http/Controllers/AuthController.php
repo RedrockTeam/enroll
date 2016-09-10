@@ -123,7 +123,7 @@ class AuthController extends Controller
             // 尝试验证用户密码
             if ($user instanceof Oyabun
                 &&
-                ($attempt = ($guard->getProvider())->validateCredentials($user, $request->only('password')))
+                ($attempt = ($guard->getProvider()->validateCredentials($user, $request->only('password'))))
             ) {
                 // 定义自定义的session数据
                 return $this->authenticated($request, $user);
