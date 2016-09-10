@@ -1,0 +1,9 @@
+{
+	"name": "Enroll",
+	"slug": "enroll",
+	"namespace": "Enroll",
+	"version": "0.1beta",
+	"author": "Redrock Team @2016",
+	"license": "MIT",
+	"description": "该模块用于重邮校级各大学生组织发布招新公告、注册和审核报名信息、管理组织成员信息。"
+}
