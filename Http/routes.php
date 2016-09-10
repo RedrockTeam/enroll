@@ -18,7 +18,7 @@ Route::group(['prefix' => 'enroll'], function() {
     // 用户操作
     Route::group(['prefix' => 'auth'], function () {
         Route::post('/login', 'AuthController@toLogin');
-        Route::any('/logout', 'AuthController@toLogout');
+        Route::get('/logout', 'AuthController@toLogout');
     });
     // 主要模块
     Route::get('/index', function () { return view('enroll::index'); });

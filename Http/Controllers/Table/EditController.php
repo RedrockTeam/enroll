@@ -3,6 +3,7 @@
 namespace App\Modules\Enroll\Http\Controllers\Table;
 
 use App\Http\Requests;
+use App\Jobs\Enroll\HandleVerifyAndRegister;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
@@ -21,7 +22,7 @@ class EditController extends Controller
      *
      * @var array|static[]
      */
-    protected static $apply = ['user' => null, 'choice' => ''];
+    protected static $apply = [];
 
     /**
      * 处理报名接口请求
@@ -49,13 +50,11 @@ class EditController extends Controller
         if ($master) {
             $admin = $request->session()->get('user_info');
             // 表明该报名请求是从后台管理提交过来的
-            self::$apply['choice'] = [['organization' => $admin['org_name'], 'department' => $admin['dept_name']]];
+            self::$apply = [['organization' => $admin['org_name'], 'department' => $admin['dept_name']]];
         } else
-            self::$apply['choice'] = array_flatten($request->only('choice'), 1);
+            self::$apply = array_flatten($request->only('choice'), 1);
 
-        $tmp =  ['org' => [], 'dept' => []];
         $user = (new Sinnjinn())->getStudentByCode($request->only(['name', 'code']));
-        $count = $user->getHavingOrganization();
 
         // 第二次报名, 以新用户(即用户属性不为空)为标识
         if (!empty($user->getAttributes())) {
@@ -64,57 +63,18 @@ class EditController extends Controller
             // 查找是否报名过填写的部门
             if ($user->withApply()->getBaseQuery()->whereIn('dept_name', array_map(function ($v) {
                 return implode('|', $v);
-            }, self::$apply['choice']))->exists())
+            }, self::$apply))->exists())
                 return response()->json(['status' => -3, 'content' => '用户报名过该部门!']);
         }
 
         if (!$second && !$user->setStudentInformation($request->except(['choice', 'pass', '_token'])))
             return response()->json(['status' => -40, 'content' => '用户报名失败, 请联系红岩网校。']);
 
-        self::$apply['user'] = $user;
+        $this->dispatch((new HandleVerifyAndRegister(
+            $user, self::$apply, $second
+        ))->onQueue('handle')->delay(30));
 
-        foreach (self::$apply['choice'] as $key => $choice) {
-            if (!in_array($choice['organization'], $tmp['org'])) {
-                // 临时保存组织名称, 用来检查是否报名超过三个组织
-                array_push($tmp['org'], $choice['organization']);
-
-                if ($count++ && $second) {
-                    // 当二次报名时, 不能报更多部门, 特别是这些部门是属于其他组织的
-                    if ($user->getStudentByOrganizationName($choice['organization'])->isEmpty()) {
-                        if ($count >= 3)
-                            return response()->json(['status' => -2, 'content' => '用户不能报名该部门, 因为用户不能再报名其他部门!']);
-                    } else $count--;
-                }
-            }
-
-            if ($count > 3)
-                return response()->json([
-                    'status' => -1, 'content' => '用户不能报名超过三个组织, 尚未报名的部门有: ' . implode(',', array_map(function ($v) {
-                        return implode('-', $v);
-                    }, self::$apply['choice']))]);
-
-            $tmp['dept'][$choice['organization']] = [];
-
-            if (!in_array($choice['department'], ($tmp_dept = &$tmp['dept'][$choice['organization']]))) {
-                if (!$this->create(['user' => self::$apply['user'], 'dept' => $choice]))
-                    return
-                        response()->json([
-                            'status' => -1, 'content' => '用户报名失败, 尚未报名的部门有: ' . implode(',', array_map(function ($v) {
-                                return implode('-', $v);
-                            }, self::$apply['choice']))
-                        ]);
-
-                array_push($tmp_dept, $choice['department']);
-            }
-
-            unset(self::$apply['choice'][$key]);
-        }
-
-        // 统计用户报名的组织数量
-        $user->setAttribute('having_org', $count);
-        $user->save();
-
-        return response()->json(['status' => 0, 'content' => '用户报名成功!']);
+        return response()->json(['status' => 0, 'content' => '正在处理用户的报名请求, 请稍后查询你的报名状态']);
     }
 
     /**
@@ -130,11 +90,16 @@ class EditController extends Controller
             return response()->json(['status' => -99, 'content' => '服务器一脸傲娇地拒绝了你的请求']);
 
         $id = $request->session()->get('user_info.dept_id');
-        $oldCurrent = $request->session()->get('current_flow.step');
+
+        // 判断是否设置过流程
+        if (!$request->session()->has('current_flow.' . $id))
+            return response(['status' => -2, 'content' => '当前部门还未开启招新!']);
+
+        $oldCurrent = $request->session()->get('current_flow')[$id]['step'];
         $structures = (new CircuitDesigns())->getDepartmentCurrentCircuit($id, ['total_step', 'flow_structure']);
 
         // 避免随意更改流程编号
-        if ($structures['total_step'] <= $oldCurrent)
+        if ($structures['total_step'] <= $oldCurrent + 1)
             return response()->json(['status' => 0, 'content' => '已经处于最终流程!']);
 
         $current = unserialize($structures['flow_structure'])[$oldCurrent + 1];
@@ -146,33 +111,12 @@ class EditController extends Controller
         if ((new DepartmentLog())->setDepartmentCurrentStep($id, array_merge($current, ['step' => $oldCurrent + 1]))) {
             // 把所有未到当前流程的学生的状态设置为相反数
             DB::connection('apollo')->update(
-                'UPDATE `apply_data_ex` SET `current_step` = 0 - `current_step` WHERE `current_step` <= ? AND `current_step` > 0',
+                'UPDATE `apply_data_ex` SET `current_step` = 0 - `current_step` WHERE `current_step` < ? AND `current_step` > 0',
                 [$oldCurrent + 1]
             );
 
             return response()->json(['status' => 0, 'content' => '成功切换至下一流程。']);
         }
-    }
-
-    /**
-     * 保存用户的报名信息
-     *
-     * @param array $apply
-     *
-     * @return bool
-     */
-    protected function create(array $apply)
-    {
-        $ex = new ApplyData();
-
-        // 关联报名用户
-        $ex->withUser()->associate($apply['user']);
-        // 保存报名信息
-        $ex->setAttribute('current_step', 1);
-        $ex->setAttribute('was_send_sms', 0);
-        $ex->setAttribute('dept_name', implode('|', $apply['dept']));
-
-        return $ex->save();
     }
 
     /**
@@ -184,17 +128,23 @@ class EditController extends Controller
      */
     public function update(Request $request)
     {
-        if ($request->session()->get('user_info.dept_id') != $request->session()->get('current_dept'))
+        $id = $request->session()->get('user_info.dept_id');
+        $currentDept = $request->session()->get('current_dept');
+
+        if (is_numeric($currentDept) && $id != $currentDept)
             return response()->json(['status' => -99, 'content' => '服务器一脸傲娇地拒绝了你的请求']);
 
-        if (empty($bag = $request->input('id'))) return ;
+        if (!$request->session()->has('current_flow.' . $id))
+            return response(['status' => -2, 'content' => '当前部门还未开启招新!']);
 
-        $current = $request->session()->get('current_flow')['step'];
+        $current = $request->session()->get('current_flow')[$id]['step'];
         $finalStep = (new CircuitDesigns())->getDepartmentCurrentCircuit(
             $request->session()->get('user_info.dept_id'), ['total_step']
         )->getAttribute('total_step');
         // 设置下一个流程
         $nextStep = $current == $finalStep ? $finalStep : $current + 1;
+
+        if (empty(($bag = $request->input('id')))) return ;
 
         foreach ($bag as $id => $switch) {
             $data = ApplyData::find($id, ['enroll_id', 'current_step']); /** @var ApplyData $data */

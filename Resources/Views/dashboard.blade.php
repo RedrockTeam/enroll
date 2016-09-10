@@ -42,7 +42,7 @@
                                         <span class="caption-subject bold uppercase">报名信息管理</span>
                                     </div>
                                     <div class="actions">
-                                        <a class="btn btn-circle btn-icon-only btn-default fa fa-sign-out" href="javascript:;"></a>
+                                        <a class="btn btn-circle btn-icon-only btn-default fa fa-sign-out" href="/enroll/auth/logout"></a>
                                         <a class="btn btn-circle btn-icon-only btn-default fullscreen" href="javascript:;"> </a>
                                     </div>
                                 </div>
@@ -94,7 +94,7 @@
                                                     流程操作 <i class="fa fa-angle-down"></i>
                                                 </a>
                                                 <ul class="dropdown-menu">
-                                                    @if(Session::get('current_dept') == Session::get('user_info.dept_id'))
+                                                    @if(Session::get('current_dept') == Session::get('user_info.dept_id') || Session::has('recycle_control'))
                                                         <li>
                                                             <a class="table-submit-type" href="javascript:;"> <i class="fa fa-check"></i> 选择通过 </a>
                                                         </li>

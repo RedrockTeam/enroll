@@ -7,6 +7,7 @@ use Illuminate\Http\JsonResponse;
 use App\Http\Controllers\Controller;
 use App\Modules\Enroll\Http\Requests\DataTableRequest;
 
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Contracts\Support\Arrayable;
@@ -54,7 +55,6 @@ class ViewController extends Controller
         $this->middleware(\App\Modules\Enroll\Http\Middleware\ValidDataCollection::class, ['only' => 'read']);
     }
 
-
     /**
      * 报名管理系统首页
      *
@@ -64,12 +64,14 @@ class ViewController extends Controller
     public function index(Request $request)
     {
         self::$data = $request->session()->get('user_info');
+
         // 载入首页所需要的数据
-        $this->retrieveDepartmentLog()->retrieveDepartmentStructure();
+        $this->retrieveDepartmentStructure()->retrieveDepartmentLog();
 
         // 将当前进行的流程序号保存到会话状态中
         $request->session()->set('current_flow', self::$data['current_flow']);
 
+        // 刚登录进来的时候设置该session, 后续表格信息的读取会依据该字段
         if (!$request->session()->has('current_dept'))
             $request->session()->set('current_dept', array_get(self::$data, 'dept_id'));
 
@@ -93,18 +95,24 @@ class ViewController extends Controller
     {
         $count = 0;
         $failed = false;
+        $recycle = false;
         $prefix = $request->session()->get('user_info.org_name');
-        $currentFlow = $request->session()->get('current_flow');
+
+        // 部门模型
+        $department = null;
 
         if (isset($dept)) {
-            $department = null;
-
             // 设置当前读取的部门ID
             $request->session()->set('current_dept', $dept);
 
             // 回收站模式
-            if ($dept === 'recycle')
-                $currentFlow['step'] = -$currentFlow['step']; // 设置为负数,表明要读取小于该数的信息
+            if ($dept === 'recycle') {
+                $recycle = true;
+                $request->session()->set('recycle_control', uniqid('recKey/'));
+            } else {
+                // 删除回收站SessionID
+                $request->session()->forget('recycle_control');
+            }
 
             // 如果不是'all', 就查找对应部门的数据
             if (is_numeric($dept)) {
@@ -118,10 +126,10 @@ class ViewController extends Controller
             }
 
             if (!$failed) {
-                $dept = $prefix . '|' . (is_null($department) ? '%' : $department->getAttributeValue('dept_name'));
+                $deptName = $prefix . '|' . (is_null($department) ? '%' : $department->getAttributeValue('dept_name'));
 
                 $count = $this->buildTableResponse(
-                    $this->collectApplyData($request, $dept, $currentFlow, $request->json('start'), $request->json('length'))
+                    $this->collectApplyData($request, $deptName, $recycle, $request->json('start'), $request->json('length'))
                 );
             }
         }
@@ -169,17 +177,16 @@ class ViewController extends Controller
      *
      * @param Request $request
      * @param string  $department
-     * @param array   $flow
+     * @param boolean $recycle
      * @param integer $paginate
      * @param integer $cursor
      *
      * @return ApplyData
      */
-    protected function collectApplyData(Request $request, $department, array $flow, $paginate, $cursor = 0)
+    protected function collectApplyData(Request $request, $department, $recycle, $paginate, $cursor = 0)
     {
         $apply = new ApplyData();
         $filter = false;
-        $current = ['department' => $department, 'flow' => $flow];
 
         // 需要搜索内容
         if ($request->input('searching') == true) {
@@ -195,9 +202,7 @@ class ViewController extends Controller
             };
         }
 
-        return $apply->getDepartmentApplyDataWithPager(
-            $current['department'], $current['flow']['step'], $cursor, $paginate, $filter
-        );
+        return $apply->getDepartmentApplyDataWithPager($department, $recycle, $cursor, $paginate, $filter);
     }
 
     /**
@@ -268,15 +273,22 @@ class ViewController extends Controller
     protected function retrieveDepartmentLog()
     {
         $flow = 'current_flow';
-        $deptID = array_get(self::$data, 'dept_id');
-        $deptLog = (new DepartmentLog())->getDepartmentLog($deptID)->toArray();
+        $currentFlow = [];
 
-        // 保存当前正在进行流程的详细信息
-        $currentFlow = unserialize(array_get($deptLog, $flow));
+        // 核心部门的人员可以读取组织下所有部门的当前流程信息
+        $target =
+            isset(self::$data['is_admin']) ?
+                 self::$data['dept_structure'] : [array_only(self::$data, 'dept_id')];
 
-        self::$data = array_merge(
-            self::$data, [$flow => $currentFlow], array_except($deptLog, $flow)
-        );
+        foreach ($target as $index => $dept) {
+            $deptID = array_get($dept, 'dept_id');
+            $deptLog = (new DepartmentLog())->getDepartmentLog($deptID);
+
+            if (!is_null($deptLog)) // 保存当前正在进行流程的详细信息
+                $currentFlow[$deptID] = unserialize(array_get($deptLog->toArray(), $flow));
+        }
+
+        self::$data = array_merge(self::$data, [$flow => $currentFlow]);
 
         return $this;
     }
@@ -295,7 +307,9 @@ class ViewController extends Controller
             $orgName, DepartmentStructures::BASE_DEPARTMENT, ['dept_id', 'dept_name']
         )->toArray();
 
-        self::$data['dept_structure'] = array_filter($deptStructure, function ($v) {
+        self::$data['dept_structure'] =
+            isset(self::$data['is_admin']) ?  // 如果登录用户属于核心部门, 则不需要排除
+                $deptStructure : array_filter($deptStructure, function ($v) {
             return !($v['dept_id'] == self::$data['dept_id']); // 排除用户所在的部门
         }, ARRAY_FILTER_USE_BOTH);
         

@@ -16,15 +16,17 @@ class SetupCircuitByYear
      */
     public function handle($request, Closure $next)
     {
-        $department = $request->session()->get('user_info.dept_id');
-        $circuit = (new \App\Modules\Enroll\Models\CircuitDesigns())->getDepartmentCurrentCircuit($department);
+        if (!$request->session()->has('is_admin')) {
+            $department = $request->session()->get('user_info.dept_id');
+            $circuit = (new \App\Modules\Enroll\Models\CircuitDesigns())->getDepartmentCurrentCircuit($department);
 
-        // 开设设置部门的报名流程
-        if (is_null($circuit))
-            return redirect()->to('/enroll/setup');
+            // 开设设置部门的报名流程
+            if (is_null($circuit))
+                return redirect()->to('/enroll/setup');
 
-        if ($circuit->getAttribute($circuit->getUpdatedAtColumn())->diffInYears(Carbon::now()) > 1)
-            return redirect()->to('/enroll/setup');
+            if ($circuit->getAttribute($circuit->getUpdatedAtColumn())->diffInYears(Carbon::now()) > 1)
+                return redirect()->to('/enroll/setup');
+        }
 
         return $next($request);
     }

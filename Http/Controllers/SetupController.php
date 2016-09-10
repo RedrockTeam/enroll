@@ -57,7 +57,9 @@ class SetupController extends Controller
         $design->setAttribute('total_step', $k);
         // 记录日志
         $design->setAttribute('for_dept_id', $request->session()->get('user_info.dept_id'));
-        $design->saveOrFail();
+
+        if (!$design->save())
+            return response()->json(['status' => -10, 'content' => '无法保存招新流程']);
 
         preg_match('/=([a-zA-Z0-9]+)\//', $request->cookie('enroll_master_credential'), $username);
         // 初始化报名流程

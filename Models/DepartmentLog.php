@@ -36,7 +36,7 @@ class DepartmentLog extends Model
      */
     public function getDepartmentLog($id, $scope = ['total_flown_sms', 'current_flow'])
     {
-        return $this->select($scope)->where('which_having', '=', $id)->first();
+        return $this->select($scope)->where('which_having', '=', $id)->orderBy('in_year', 'desc')->first();
     }
 
     /**
@@ -54,9 +54,11 @@ class DepartmentLog extends Model
         return $this->insert([
             'total_flown_sms' => $totalSMS,
             'current_flow' => serialize($step),
+            'can_enroll' => 1, // 开启报名
+            'sms_template' => $step['remark'], // 发送的短信模板
             'which_having' => $id,
             'who_write' => $by,
-            'in_year' => date('Y', time())
+            'in_year' => date('Y-m-d', time())
         ]);
     }
 
@@ -70,6 +72,6 @@ class DepartmentLog extends Model
      */
     public function setDepartmentCurrentStep($id, array $step)
     {
-        return $this->where('which_having', '=', $id)->update(['current_flow' => serialize($step)]);
+        return $this->where('which_having', '=', $id)->update(['current_flow' => serialize($step), 'can_enroll' => 0]);
     }
 }
