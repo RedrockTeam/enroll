@@ -18,6 +18,7 @@ class CreateDepartmentLogTable extends Migration
             $table->unsignedInteger('total_flown_sms');
             $table->string('current_flow');
             $table->tinyInteger('can_enroll');
+            $table->string('sms_template'. 100);
             // 记录时留下的证据
             $table->integer('which_having');
             $table->string('who_write');

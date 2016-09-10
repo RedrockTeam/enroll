@@ -311,7 +311,7 @@ class ViewController extends Controller
             isset(self::$data['is_admin']) ?  // 如果登录用户属于核心部门, 则不需要排除
                 $deptStructure : array_filter($deptStructure, function ($v) {
             return !($v['dept_id'] == self::$data['dept_id']); // 排除用户所在的部门
-        }, ARRAY_FILTER_USE_BOTH);
+        }, \ARRAY_FILTER_USE_BOTH);
         
         return $this;
     }
