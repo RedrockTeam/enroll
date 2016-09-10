@@ -223,8 +223,7 @@ class AuthController extends Controller
                  */
                 if ($request->query('next') == 'refresh') {
                     $onlyPassword = true;
-                    $recallerName = (Auth::guard($this->getGuard()))->getRecallerName();
-                    $rememberToken = $request->cookies->get($recallerName);
+                    $rememberToken = $request->cookies->get(Auth::guard($this->getGuard())->getRecallerName());
 
                     // 保持refresh令牌有效直到登录成功
                     $request->session()->reflash();
