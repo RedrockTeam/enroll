@@ -17,8 +17,6 @@ use App\Modules\Enroll\Models\ApplyData;
 use App\Modules\Enroll\Models\DepartmentLog;
 use App\Modules\Enroll\Models\CircuitDesigns;
 use App\Modules\Pvdt\Models\DepartmentStructures;
-use Illuminate\Support\Facades\Log;
-
 
 class ViewController extends Controller
 {
