@@ -139,7 +139,7 @@ class ViewController extends Controller
                 $cursor = $request->json('start') / $length;
 
                 $count = $this->buildTableResponse(
-                    $this->collectApplyData($request, $deptName, $recycle, $length, $cursor)
+                    $request, $this->collectApplyData($request, $deptName, $recycle, $length, $cursor)
                 );
             }
         }
@@ -218,10 +218,12 @@ class ViewController extends Controller
     /**
      * 组装回传的Json信息
      *
+     * @param Request   $request
      * @param Arrayable $data
+     *
      * @return int
      */
-    protected function buildTableResponse(Arrayable $data)
+    protected function buildTableResponse(Request $request, Arrayable $data)
     {
         $count = 0;
 
@@ -272,7 +274,7 @@ class ViewController extends Controller
             $count++;
         }
 
-        return $count;
+        return $request->input('searching') ? $count : $request->session()->get('count');
     }
 
     /**
