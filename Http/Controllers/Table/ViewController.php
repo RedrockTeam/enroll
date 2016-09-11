@@ -65,15 +65,19 @@ class ViewController extends Controller
     {
         self::$data = $request->session()->get('user_info');
 
+        // 刚登录进来的时候设置该session, 后续表格信息的读取会依据该字段
+        if (!$request->session()->has('current_dept'))
+            $request->session()->set('current_dept', array_get(self::$data, 'dept_id'));
+
+        $condition = self::$data['org_name'] . '|' . ($request->session()->has('is_admin') ? '%' : self::$data['dept_name']);
+        // 预先存储数据结果集
+        $request->session()->set('count', DB::table('department_log')->where($condition)->count());
+
         // 载入首页所需要的数据
         $this->retrieveDepartmentStructure()->retrieveDepartmentLog();
 
         // 将当前进行的流程序号保存到会话状态中
         $request->session()->set('current_flow', self::$data['current_flow']);
-
-        // 刚登录进来的时候设置该session, 后续表格信息的读取会依据该字段
-        if (!$request->session()->has('current_dept'))
-            $request->session()->set('current_dept', array_get(self::$data, 'dept_id'));
 
         return
             view('enroll::dashboard', [
@@ -138,7 +142,9 @@ class ViewController extends Controller
             }
         }
 
-        return $response->setData(['data' => self::$data, 'recordsTotal' => $count, 'recordsFiltered' => $count]);
+        return $response->setData([
+            'data' => self::$data, 'recordsTotal' => $request->session()->get('count'), 'recordsFiltered' => $count
+        ]);
     }
 
     /**
