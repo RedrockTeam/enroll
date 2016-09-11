@@ -135,7 +135,7 @@ class ViewController extends Controller
 
                 // 分页控制
                 $length = $request->json('length');
-                $cursor = $request->json('start') / $length;
+                $cursor = $request->json('start') / $length + 1;
 
                 $count = $this->buildTableResponse(
                     $request, $this->collectApplyData($request, $deptName, $recycle, $length, $cursor)

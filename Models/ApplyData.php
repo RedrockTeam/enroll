@@ -5,7 +5,6 @@ namespace App\Modules\Enroll\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
 
-use Illuminate\Support\Facades\Log;
 use App\Modules\Pvdt\Models\StudentInformation;
 
 class ApplyData extends Model
@@ -54,8 +53,6 @@ class ApplyData extends Model
      */
     public function getDepartmentApplyDataWithPager($department, $recycle, $page, $perPage = false, $filter = false, $scope = ['*'])
     {
-        Log::debug([$page, $perPage]);
-
         /** @var \Illuminate\Database\Eloquent\Builder $query */
         $query = $this->where([
             ['dept_name', 'LIKE', $department], ['current_step', $recycle ? '<' : '>', 0]
