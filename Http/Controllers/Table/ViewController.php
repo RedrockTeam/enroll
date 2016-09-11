@@ -139,13 +139,9 @@ class ViewController extends Controller
                 $length = $request->json('length');
                 $cursor = $request->json('start') / $length;
 
-                DB::connection('apollo')->enableQueryLog();
-
                 $count = $this->buildTableResponse(
                     $request, $this->collectApplyData($request, $deptName, $recycle, $length, $cursor)
                 );
-
-                Log::debug(DB::connection('apollo')->getQueryLog());
             }
         }
 
@@ -198,7 +194,7 @@ class ViewController extends Controller
      *
      * @return ApplyData
      */
-    protected function collectApplyData(Request $request, $department, $recycle, $paginate, $cursor = 0)
+    protected function collectApplyData(Request $request, $department, $recycle, $paginate, $cursor)
     {
         $apply = new ApplyData();
         $filter = false;
