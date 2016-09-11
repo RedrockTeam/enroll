@@ -162,7 +162,6 @@ class ViewController extends Controller
      */
     public function notify(Request $request)
     {
-        Log::debug('Start!');
         $form = false;
         $condition = $request->only(['name', 'code']);
 
@@ -174,15 +173,11 @@ class ViewController extends Controller
 
         $student = (new Sinnjinn())->getStudentByCode($condition);
 
-        Log::debug('Second!');
-
         if (empty($student->getAttributes()))
             return response()->json(['status' => 0, 'content' => '该学生没有报过任何部门!']);
 
         $applyData = $student->withApply()->getQuery()->get(['dept_name', 'current_step'])->toArray();
-
-        Log::debug('Final!');
-
+        
         if ($form)
             return response()->json(['status' => 0, 'content' => '该学生已经报过一些部门了。', 'extra' => array_map(function ($v) {
                 return $v = explode('|', $v['dept_name']);
