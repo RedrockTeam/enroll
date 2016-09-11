@@ -128,8 +128,12 @@ class ViewController extends Controller
             if (!$failed) {
                 $deptName = $prefix . '|' . (is_null($department) ? '%' : $department->getAttributeValue('dept_name'));
 
+                // 分页控制
+                $length = $request->json('length');
+                $cursor = $request->json('start') / $length;
+
                 $count = $this->buildTableResponse(
-                    $this->collectApplyData($request, $deptName, $recycle, $request->json('start'), $request->json('length'))
+                    $this->collectApplyData($request, $deptName, $recycle, $length, $cursor)
                 );
             }
         }
