@@ -160,9 +160,7 @@ class ViewController extends Controller
         if (empty($student->getAttributes()))
             return response()->json(['status' => 0, 'content' => '该学生没有报过任何部门!']);
 
-        foreach ((
-            $applyData = $student->withApply()->getQuery()->get(['dept_name', 'current_step'])->toArray()
-        ) as $index => &$item) $item['dept_name'] = explode('|', $item['dept_name']);
+        $applyData = $student->withApply()->getQuery()->get(['dept_name', 'current_step'])->toArray();
 
         if ($form)
             return response()->json(['status' => 0, 'content' => '该学生已经报过一些部门了。', 'extra' => array_map(function ($v) {
