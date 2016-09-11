@@ -71,7 +71,9 @@ class ViewController extends Controller
 
         $condition = self::$data['org_name'] . '|' . ($request->session()->has('is_admin') ? '%' : self::$data['dept_name']);
         // 预先存储数据结果集
-        $request->session()->set('count', DB::connection('apollo')->table('department_log')->where($condition)->count());
+        $request->session()->set(
+            'count', DB::connection('apollo')->table('department_log')->where('dept_name', 'LIKE', $condition)->count()
+        );
 
         // 载入首页所需要的数据
         $this->retrieveDepartmentStructure()->retrieveDepartmentLog();
