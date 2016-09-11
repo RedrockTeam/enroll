@@ -3,6 +3,7 @@
 namespace App\Modules\Enroll\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Log;
 
 class Sinnjinn extends Model
 {
@@ -31,7 +32,7 @@ class Sinnjinn extends Model
      *
      * @var static[]
      */
-    protected static $sex = [0 => '男', 1 => '女'];
+    protected static $sex = [0 => '男', 1 => '女', 2 => '其他性别'];
 
     /**
      * 用户可以报名多个部门,拥有多条报名信息
@@ -86,8 +87,12 @@ class Sinnjinn extends Model
             else if ('name' == $column)
                 $this->setAttribute('full_name', $attribute);
             else {
-                if ('gender' == $column)
-                    $attribute = self::$sex[$attribute];
+                if ('gender' == $column) {
+                    if (isset(self::$sex[$attribute]))
+                        $attribute = self::$sex[$attribute];
+                    else
+                        Log::debug('##Enroll: 学号为' . $data['code'] . '的同学性别值为' . $attribute);
+                }
 
                 $this->$column = $attribute;
             }
