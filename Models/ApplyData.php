@@ -50,7 +50,7 @@ class ApplyData extends Model
      *
      * @return $this|\Illuminate\Support\Collection
      */
-    public function getDepartmentApplyDataWithPager($department, $recycle, $page = 0, $perPage = false, $filter = false, $scope = ['*'])
+    public function getDepartmentApplyDataWithPager($department, $recycle, $page, $perPage = false, $filter = false, $scope = ['*'])
     {
         /** @var \Illuminate\Database\Eloquent\Builder $query */
         $query = $this->where([
@@ -60,7 +60,7 @@ class ApplyData extends Model
         if ($filter)
             $query = $query->whereHas('withUser', $filter);
 
-        if ($perPage)
+        if ($perPage != false)
             return $query->paginate($perPage, $scope, 'enroll_data', $page);
 
         return $query->orderBy('current_step', 'desc')->get($scope);

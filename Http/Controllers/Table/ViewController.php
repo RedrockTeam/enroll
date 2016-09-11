@@ -139,8 +139,6 @@ class ViewController extends Controller
                 $length = $request->json('length');
                 $cursor = $request->json('start') / $length;
 
-                Log::debug([$length, $cursor]);
-
                 DB::connection('apollo')->enableQueryLog();
 
                 $count = $this->buildTableResponse(
