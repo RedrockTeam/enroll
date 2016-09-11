@@ -17,6 +17,7 @@ use App\Modules\Enroll\Models\ApplyData;
 use App\Modules\Enroll\Models\DepartmentLog;
 use App\Modules\Enroll\Models\CircuitDesigns;
 use App\Modules\Pvdt\Models\DepartmentStructures;
+use Illuminate\Support\Facades\Log;
 
 
 class ViewController extends Controller
@@ -138,9 +139,15 @@ class ViewController extends Controller
                 $length = $request->json('length');
                 $cursor = $request->json('start') / $length;
 
+                Log::debug($length, $cursor);
+
+                DB::connection('apollo')->enableQueryLog();
+
                 $count = $this->buildTableResponse(
                     $request, $this->collectApplyData($request, $deptName, $recycle, $length, $cursor)
                 );
+
+                Log::debug(DB::connection('apollo')->getQueryLog());
             }
         }
 
