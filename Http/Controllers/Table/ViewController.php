@@ -177,7 +177,7 @@ class ViewController extends Controller
             return response()->json(['status' => 0, 'content' => '该学生没有报过任何部门!']);
 
         $applyData = $student->withApply()->getQuery()->get(['dept_name', 'current_step'])->toArray();
-        
+
         if ($form)
             return response()->json(['status' => 0, 'content' => '该学生已经报过一些部门了。', 'extra' => array_map(function ($v) {
                 return $v = explode('|', $v['dept_name']);
