@@ -11,6 +11,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Contracts\Support\Arrayable;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 use App\Modules\Enroll\Models\Sinnjinn;
 use App\Modules\Enroll\Models\ApplyData;
@@ -65,14 +66,12 @@ class ViewController extends Controller
         self::$data = $request->session()->get('user_info');
 
         // 刚登录进来的时候设置该session, 后续表格信息的读取会依据该字段
-        if (!$request->session()->has('current_dept'))
-            $request->session()->set('current_dept', array_get(self::$data, 'dept_id'));
+        if (!$request->session()->has('current_dept')) {
+            // 如果是核心部门, 就默认读取所有的部门信息
+            $currentDept = $request->session()->has('is_admin') ? 'all' : array_get(self::$data, 'dept_id');
 
-        $condition = self::$data['org_name'] . '|' . ($request->session()->has('is_admin') ? '%' : self::$data['dept_name']);
-        // 预先存储数据结果集
-        $request->session()->set(
-            'count', DB::connection('apollo')->table('apply_data_ex')->where('dept_name', 'LIKE', $condition)->count()
-        );
+            $request->session()->set('current_dept', $currentDept);
+        }
 
         // 载入首页所需要的数据
         $this->retrieveDepartmentStructure()->retrieveDepartmentLog();
@@ -110,15 +109,6 @@ class ViewController extends Controller
             // 设置当前读取的部门ID
             $request->session()->set('current_dept', $dept);
 
-            // 回收站模式
-            if ($dept === 'recycle') {
-                $recycle = true;
-                $request->session()->set('recycle_control', uniqid('recKey/'));
-            } else {
-                // 删除回收站SessionID
-                $request->session()->forget('recycle_control');
-            }
-
             // 如果不是'all', 就查找对应部门的数据
             if (is_numeric($dept)) {
                 $department = DepartmentStructures::where('org_name', '=', $prefix)->find($dept);
@@ -128,6 +118,20 @@ class ViewController extends Controller
                     // 读取当前登录账户的部门
                     $request->session()->replace(['current_dept' => $request->session()->get('user_info.dept_id')]);
                 }
+            }
+
+            // 回收站模式
+            if ($dept === 'recycle') {
+                $recycle = true;
+                $request->session()->set('recycle_control', uniqid('recKey/'));
+
+                if (!$request->session()->has('is_admin'))
+                    $department = DepartmentStructures::where( // 非核心部门的读取自己部门的淘汰名单
+                        'org_name', '=', $prefix
+                    )->find($request->session()->get('user_info.dept_id'));
+            } else {
+                // 删除回收站SessionID
+                $request->session()->forget('recycle_control');
             }
 
             if (!$failed) {
@@ -144,7 +148,7 @@ class ViewController extends Controller
         }
 
         return $response->setData([
-            'data' => self::$data, 'recordsTotal' => $request->session()->get('count'), 'recordsFiltered' => $count
+            'data' => self::$data, 'recordsTotal' => $count['total'], 'recordsFiltered' => $count['filter']
         ]);
     }
 
@@ -217,16 +221,14 @@ class ViewController extends Controller
     /**
      * 组装回传的Json信息
      *
-     * @param Request   $request
-     * @param Arrayable $data
+     * @param Request              $request
+     * @param LengthAwarePaginator $data
      *
-     * @return int
+     * @return array
      */
-    protected function buildTableResponse(Request $request, Arrayable $data)
+    protected function buildTableResponse(Request $request, LengthAwarePaginator $data)
     {
-        $count = 0;
-
-        if (empty($data->toArray())) {
+        if ($data->isEmpty()) {
             // 返回一个初始的空数组
             self::$data = self::$records;
         }
@@ -244,7 +246,6 @@ class ViewController extends Controller
             } else {
                 $flowName = '通过' . self::$flown[$index - 1];
             }
-
 
             if ($item->getAttributeValue('was_send_sms') == 1)
                 $flowName .= ' <span class="label label-sm label-success">已发送</span>';
@@ -270,10 +271,9 @@ class ViewController extends Controller
             self::$data[] = self::$records;
             self::$records = $tmp;
             // 手动计数
-            $count++;
         }
 
-        return $request->input('searching') ? $count : $request->session()->get('count');
+        return ['total' => $data->total(), 'filter' => $data->total()];
     }
 
     /**

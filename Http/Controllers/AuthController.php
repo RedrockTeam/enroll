@@ -176,6 +176,9 @@ class AuthController extends Controller
         // 清空用户的会话状态
         $request->session()->forget(['is_admin', 'user_info', Auth::guard($this->guard)->getName()]);
 
+        // 清空其他状态
+        $request->session()->clear();
+
         // 清除用户的登录凭证
         $request->cookies->remove('enroll_master_credential');
     }

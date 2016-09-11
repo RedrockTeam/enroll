@@ -67,12 +67,14 @@
                                                     </div>
                                                     <button class="btn dark" id="recycle">回收站<i class="fa fa-recycle"></i></button>
                                                 </div>
-                                                <div class="btn-group">
-                                                    <a class="btn btn-default sbold" data-toggle="modal" href="#enroll-form-modal">添加报名<i class="fa fa-plus"></i></a>
-                                                </div>
-                                                <div class="btn-group">
-                                                    <a class="btn btn-default sbold" id="checkout" href="##">切换到下一流程</a>
-                                                </div>
+                                                @if ( !Session::has('is_admin') )
+                                                    <div class="btn-group">
+                                                        <a class="btn btn-default sbold" data-toggle="modal" href="#enroll-form-modal">添加报名<i class="fa fa-plus"></i></a>
+                                                    </div>
+                                                    <div class="btn-group">
+                                                        <a class="btn btn-default sbold" id="checkout" href="##">切换到下一流程</a>
+                                                    </div>
+                                                @endif
                                             </div>
                                             <div class="col-md-6">
                                                 <div class="btn-group pull-right">

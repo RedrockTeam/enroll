@@ -11,9 +11,7 @@
     @section('container')
         <!-- BEGIN LOGO -->
         <div class="logo">
-            <a href="index.html">
-                <img src="../assets/pages/img/logo-big-white.png" style="height: 17px;" alt="" />
-            </a>
+            <h1 class="title" style="color: #fffcfb">校级组织报名管理后台</h1>
         </div>
         <!-- END LOGO -->
         <!-- BEGIN LOGIN -->

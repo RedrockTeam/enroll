@@ -79,15 +79,6 @@
                                         <span class="help-block"> 环节开展的地点 </span>
                                     </div>
                                 </div>
-                                <div class="form-group">
-                                    <label class="control-label col-md-4"> 短信模板
-                                        <span class="required"> * </span>
-                                    </label>
-                                    <div class="col-md-6">
-                                        <textarea class="form-control" name="remark" ></textarea>
-                                        <span class="help-block"> 本轮通过时所发送的短信模板 </span>
-                                    </div>
-                                </div>
                             </div>
                             <div class="tab-pane active" id="tab2" data-step="2"></div>
                             <div class="tab-pane active" id="tab3" data-step="3"></div>
