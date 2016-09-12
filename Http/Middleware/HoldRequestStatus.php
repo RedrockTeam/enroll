@@ -15,6 +15,9 @@ class HoldRequestStatus
      */
     public function handle($request, Closure $next)
     {
+        if ($request->session()->has('user_info') && !$request->hasCookie('enroll_master_credential'))
+            return response()->json(['status' => 1, 'content' => '需要重新登录后台管理系统', 'data' => []]);
+
         $token = $request->session()->get('user_info.dept_id') . $request->session()->getId();
 
         // 验证API访问请求是否有效

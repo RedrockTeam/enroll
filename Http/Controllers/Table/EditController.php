@@ -33,19 +33,26 @@ class EditController extends Controller
      */
     public function handle(Request $request)
     {
+        // 报名状态标识
         $master = false;
         $second = false;
 
         if ($request->hasCookie('enroll_master_credential') /** 需要验证cookie */) {
             $master = true;
 
-            if ($request->session()->get('user_info.dept_id') != $request->session()->get('current_dept'))
+            if ($request->session()->has('is_admin'))
                 return response()->json(['status' => -99, 'content' => '服务器一脸傲娇地拒绝了你的请求']);
         }
 
         // 验证用户
-        if (!$master && $this->verify($request->input('code'), $request->input('pass'))['status'] != 200)
-            return response()->json(['status' => -10, 'content' => '用户输入的学号和密码不相符']);
+        if (!$master) {
+            $verifyData = $this->verify($request->input('code'), $request->input('pass'));
+
+            if ($verifyData['status'] != 200)
+                return response()->json(['status' => -10, 'content' => '用户输入的学号和密码不相符']);
+            if ($verifyData['data']['name'] != $request->input('name'))
+                return response()->json(['status' => -10, 'content' => '对不起, 你的学号和姓名不符']);
+        }
 
         if ($master) {
             $admin = $request->session()->get('user_info');
@@ -86,7 +93,7 @@ class EditController extends Controller
      */
     public function checkout(Request $request)
     {
-        if ($request->session()->get('user_info.dept_id') != $request->session()->get('current_dept'))
+        if ($request->session()->has('is_admin'))
             return response()->json(['status' => -99, 'content' => '服务器一脸傲娇地拒绝了你的请求']);
 
         $id = $request->session()->get('user_info.dept_id');
@@ -108,15 +115,15 @@ class EditController extends Controller
             return response()->json(['status' => -13, 'content' => '下一流程的预定开启时间还未到, 无法切换到下一流程']);
 
         // 保存下一报名流程
-        if ((new DepartmentLog())->setDepartmentCurrentStep($id, array_merge($current, ['step' => $oldCurrent + 1]))) {
-            // 把所有未到当前流程的学生的状态设置为相反数
-            DB::connection('apollo')->update(
-                'UPDATE `apply_data_ex` SET `current_step` = 0 - `current_step` WHERE `current_step` < ? AND `current_step` > 0',
-                [$oldCurrent + 1]
-            );
-
-            return response()->json(['status' => 0, 'content' => '成功切换至下一流程。']);
-        }
+//        if ((new DepartmentLog())->setDepartmentCurrentStep($id, array_merge($current, ['step' => $oldCurrent + 1]))) {
+//            // 把所有未到当前流程的学生的状态设置为相反数
+//            DB::connection('apollo')->update(
+//                'UPDATE `apply_data_ex` SET `current_step` = 0 - `current_step` WHERE `current_step` < ? AND `current_step` > 0',
+//                [$oldCurrent + 1]
+//            );
+//
+//            return response()->json(['status' => 0, 'content' => '成功切换至下一流程。']);
+//        }
     }
 
     /**
@@ -128,11 +135,10 @@ class EditController extends Controller
      */
     public function update(Request $request)
     {
-        $id = $request->session()->get('user_info.dept_id');
-        $currentDept = $request->session()->get('current_dept');
-
-        if (is_numeric($currentDept) && $id != $currentDept)
+        if ($request->session()->has('is_admin'))
             return response()->json(['status' => -99, 'content' => '服务器一脸傲娇地拒绝了你的请求']);
+
+        $id = $request->session()->get('user_info.dept_id');
 
         if (!$request->session()->has('current_flow.' . $id))
             return response(['status' => -2, 'content' => '当前部门还未开启招新!']);
@@ -147,6 +153,7 @@ class EditController extends Controller
         if (empty(($bag = $request->input('id')))) return ;
 
         foreach ($bag as $id => $switch) {
+            // TODO 考虑优化速度
             $data = ApplyData::find($id, ['enroll_id', 'current_step']); /** @var ApplyData $data */
             $step = $data->getAttributeValue('current_step');
 

@@ -74,6 +74,8 @@ class ViewController extends Controller
             $request->session()->set('current_dept', $currentDept);
         }
 
+        Log::debug('Current Dept:' . $request->session()->get('current_dept'));
+
         // 载入首页所需要的数据
         $this->retrieveDepartmentStructure()->retrieveDepartmentLog();
 
@@ -90,13 +92,12 @@ class ViewController extends Controller
     /**
      * 载入当前部门对应的报名信息
      *
-     * @param DataTableRequest $request
-     * @param integer|string   $dept
-     * @param JsonResponse     $response
+     * @param DataTableRequest    $request
+     * @param JsonResponse        $response
      *
      * @return \Symfony\Component\HttpFoundation\JsonResponse
      */
-    public function read(DataTableRequest $request, $dept, JsonResponse $response)
+    public function read(DataTableRequest $request, JsonResponse $response)
     {
         $count = 0;
         $failed = false;
@@ -105,52 +106,64 @@ class ViewController extends Controller
 
         // 部门模型
         $department = null;
+        $currentDept = $request->session()->get('current_dept');
 
-        if (isset($dept)) {
-            // 设置当前读取的部门ID
-            $request->session()->set('current_dept', $dept);
+        // 如果不是'all', 就查找对应部门的数据
+        if (is_numeric($currentDept)) {
+            $department = DepartmentStructures::where('org_name', '=', $prefix)->find($currentDept);
 
-            // 如果不是'all', 就查找对应部门的数据
-            if (is_numeric($dept)) {
-                $department = DepartmentStructures::where('org_name', '=', $prefix)->find($dept);
-
-                if (is_null($department)) {
-                    $failed = true;
-                    // 读取当前登录账户的部门
-                    $request->session()->replace(['current_dept' => $request->session()->get('user_info.dept_id')]);
-                }
+            if (is_null($department)) {
+                $failed = true;
+                // 读取当前登录账户的部门
+                $request->session()->replace(['current_dept' => $request->session()->get('user_info.dept_id')]);
             }
+        }
 
-            // 回收站模式
-            if ($dept === 'recycle') {
-                $recycle = true;
-                $request->session()->set('recycle_control', uniqid('recKey/'));
+        // 回收站模式
+        if ($currentDept === 'recycle') {
+            $recycle = true;
+            $request->session()->set('recycle_control', uniqid('recKey/'));
 
-                if (!$request->session()->has('is_admin'))
-                    $department = DepartmentStructures::where( // 非核心部门的读取自己部门的淘汰名单
-                        'org_name', '=', $prefix
-                    )->find($request->session()->get('user_info.dept_id'));
-            } else {
-                // 删除回收站SessionID
-                $request->session()->forget('recycle_control');
-            }
+            if (!$request->session()->has('is_admin'))
+                $department = DepartmentStructures::where( // 非核心部门的读取自己部门的淘汰名单
+                    'org_name', '=', $prefix
+                )->find($request->session()->get('user_info.dept_id'));
+        } else {
+            // 删除回收站SessionID
+            $request->session()->forget('recycle_control');
+        }
 
-            if (!$failed) {
-                $deptName = $prefix . '|' . (is_null($department) ? '%' : $department->getAttributeValue('dept_name'));
+        if (!$failed) {
+            $deptName = $prefix . '|' . (is_null($department) ? '%' : $department->getAttributeValue('dept_name'));
 
-                // 分页控制
-                $length = $request->json('length');
-                $cursor = $request->json('start') / $length + 1;
+            // 分页控制
+            $length = $request->json('length');
+            $cursor = $request->json('start') / $length + 1;
 
-                $count = $this->buildTableResponse(
-                    $request, $this->collectApplyData($request, $deptName, $recycle, $length, $cursor)
-                );
-            }
+            $count = $this->buildTableResponse(
+                $request, $this->collectApplyData($request, $deptName, $recycle, $length, $cursor)
+            );
         }
 
         return $response->setData([
             'data' => self::$data, 'recordsTotal' => $count['total'], 'recordsFiltered' => $count['filter']
         ]);
+    }
+
+    /**
+     * 刷新当前读取的部门ID
+     *
+     * @param Request             $request
+     * @param integer|string|null $dept
+     *
+     * @return JsonResponse
+     */
+    public function refresh(Request $request, $dept)
+    {
+        // 设置当前读取的部门ID
+        $request->session()->set('current_dept', $dept);
+
+        return response()->json(['status' => 0, 'content' => '成功切换至该部门, 刷新后即可查看其数据']);
     }
 
     /**

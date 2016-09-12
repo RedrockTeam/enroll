@@ -56,7 +56,7 @@ class ApplyData extends Model
         /** @var \Illuminate\Database\Eloquent\Builder $query */
         $query = $this->where([
             ['dept_name', 'LIKE', $department], ['current_step', $recycle ? '<' : '>', 0]
-        ]);
+        ])->orderBy('current_step', 'desc');
 
         if ($filter)
             $query = $query->whereHas('withUser', $filter);

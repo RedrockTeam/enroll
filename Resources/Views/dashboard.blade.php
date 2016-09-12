@@ -162,10 +162,8 @@
                                 </div>
                                 <div class="form-group form-md-line-input form-md-floating-label">
                                     <select name="gender" class="form-control" required>
-                                        <option selected>...</option>
                                         <option value="0">男</option>
                                         <option value="1">女</option>
-                                        <option value="2">其他性别</option>
                                     </select>
                                     <label for="form-control">请输入性别</label>
                                 </div>

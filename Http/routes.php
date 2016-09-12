@@ -29,7 +29,8 @@ Route::group(['prefix' => 'enroll'], function() {
         // 安装模块
         Route::post('/setup', 'SetupController@create');
         // DataTable
-        Route::post('/read/{dept}', 'Table\\ViewController@read')->where('dept', '[0-9]{1,2}|all|recycle');
+        Route::post('/read', 'Table\\ViewController@read');
+        Route::post('/refresh/{dept}', 'Table\\ViewController@refresh')->where('dept', '[0-9]{1,2}|all|recycle');
         Route::post('/handle', 'Table\\EditController@handle');
         Route::post('/notify', 'Table\\ViewController@notify');
         Route::post('/update', 'Table\\EditController@update');
