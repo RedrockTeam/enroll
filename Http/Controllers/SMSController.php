@@ -23,6 +23,9 @@ class SMSController extends Controller
      */
     protected static $apiKey = 'api:key-b761c24f77fc5d77769d5a442ccacc10';
 
+    /**
+     * 短信发送地址
+     */
     protected static $apiURL = 'http://sms-api.luosimao.com/v1/send.json';
 
     public function send(Request $request)
@@ -53,10 +56,10 @@ class SMSController extends Controller
 
         if (is_null($flow))
             return response()->json(['status' => -20, 'content' => '找不到对应的招新流程']);
-        if ($flow->getAttributeValue('total_step') <= ($step = $request->session()->get('current_flow.step')))
+        if ($flow->getAttributeValue('total_step') <= ($step = $request->session()->get('current_flow')[$current]['step']))
             return response()->json(['status' => 0, 'content' => '已经处于最终流程!']);
 
-        $nextFlow = unserialize($flow->getAttributeValue('flow_structure'))[$step + 1];
+        $thisFlow = unserialize($flow->getAttributeValue('flow_structure'))[$step];
 
         // 依次发送到任务队列里
         foreach ($data as $index => $item) {
@@ -66,7 +69,7 @@ class SMSController extends Controller
                 Log::error('##Enroll: 姓名为' . $item['name'] . ', 学号为' . $item['code'] . '的这位同学的信息不存在于数据库中');
             }
 
-            $this->dispatch((new SendCompleteSMS($student, $deptLog, $nextFlow, $deptName))->onQueue('sms'));
+            $this->dispatch((new SendCompleteSMS($student, $deptLog, $thisFlow, $deptName))->onQueue('sms')->delay(30));
         }
 
         return response()->json(['status' => 0, 'content' => '后台开始执行短信发送服务!']);

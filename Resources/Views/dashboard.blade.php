@@ -39,7 +39,7 @@
                             <div class="portlet light bordered">
                                 <div class="portlet-title">
                                     <div class="caption font-dark">
-                                        <span class="caption-subject bold uppercase">报名信息管理</span>
+                                        <span class="caption-subject bold uppercase">报名信息管理 | 目前处于 {{ $step }}环节</span>
                                     </div>
                                     <div class="actions">
                                         <a class="btn btn-circle btn-icon-only btn-default fa fa-sign-out" href="/enroll/auth/logout"></a>
@@ -67,14 +67,6 @@
                                                     </div>
                                                     <button class="btn dark" id="recycle">回收站<i class="fa fa-recycle"></i></button>
                                                 </div>
-                                                @if ( !Session::has('is_admin') )
-                                                    <div class="btn-group">
-                                                        <a class="btn btn-default sbold" data-toggle="modal" href="#enroll-form-modal">添加报名<i class="fa fa-plus"></i></a>
-                                                    </div>
-                                                    <div class="btn-group">
-                                                        <a class="btn btn-default sbold" id="checkout" href="##">切换到下一流程</a>
-                                                    </div>
-                                                @endif
                                             </div>
                                             <div class="col-md-6">
                                                 <div class="btn-group pull-right">
@@ -86,6 +78,17 @@
                                                         <li><a class="buttons-csv buttons-html5" href="javascript:;"><i class="fa fa-file-excel-o"></i>导出至Excel</a></li>
                                                     </ul>
                                                 </div>
+                                                @if ( !Session::has('is_admin') )
+                                                    <div class="btn-group pull-right">
+                                                        <a class="btn btn-default sbold" id="checkout" href="##">切换到下一流程</a>
+                                                    </div>
+                                                    <div class="btn-group pull-right">
+                                                        <a class="btn btn-default sbold" id="modify" data-toggle="modal" href="#enroll-circuit-modal">修改环节<i class="fa fa-pencil"></i></a>
+                                                    </div>
+                                                    <div class="btn-group pull-right">
+                                                        <a class="btn btn-default sbold" id="handle" data-toggle="modal" href="#enroll-form-modal">添加报名<i class="fa fa-plus"></i></a>
+                                                    </div>
+                                                @endif
                                             </div>
                                         </div>
                                     </div>
@@ -100,9 +103,11 @@
                                                         <li>
                                                             <a class="table-submit-type" href="javascript:;"> <i class="fa fa-check"></i> 选择通过 </a>
                                                         </li>
-                                                        <li>
-                                                            <a class="table-send-sms" href="javascript:;"> <i class="fa fa-send"></i> 发送短信 </a>
-                                                        </li>
+                                                        @if (!Session::has('recycle_control'))
+                                                            <li>
+                                                                <a class="table-send-sms" href="javascript:;"> <i class="fa fa-send"></i> 发送短信 </a>
+                                                            </li>
+                                                        @endif
                                                         <li class="divider"></li>
                                                     @endif
                                                     <li>
@@ -144,7 +149,7 @@
                 {{-- Footer include website copyright ============ --}}
                 @section('footer')
                 <div id="enroll-form-modal" class="modal fade" tabindex="-1" data-width="420" data-backdrop="static" data-keyboard="false">
-                    <form role="form" method="POST" action="{{ URL::to('/enroll/api/create') }}" name="add-role" id="add-role">
+                    <form role="form" method="POST" action="#" name="add-role" id="add-role">
                         <div class="form-body">
                             <div class="modal-header">
                                 <button type="button" class="close" data-dismiss="modal" aria-hidden="true"></button>
@@ -195,6 +200,36 @@
                             <div class="modal-footer">
                                 <button type="button" data-dismiss="modal" class="btn dark btn-outline">取消</button>
                                 <button type="submit" class="btn red" form="add-role">保存</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div id="enroll-circuit-modal" class="modal fade" tabindex="-1" data-width="420" data-backdrop="static" data-keyboard="false">
+                    <form role="form" method="POST" action="#" name="modify-circuit" id="modify-circuit">
+                        <div class="form-body">
+                            <div class="modal-header">
+                                <button type="button" class="close" data-dismiss="modal" aria-hidden="true"></button>
+                                <h4 class="modal-title">修改当前环节描述</h4>
+                                {{ csrf_field() }}
+                            </div>
+                            <div class="modal-body">
+                                <div class="form-group form-md-line-input">
+                                    <div class="input-icon">
+                                        <input type="text" name="location" class="form-control" autocomplete="off" autofocus required>
+                                        <label for="form-control">请在此填写新的地点信息</label>
+                                        <span class="help-block">注意: 这是你所在部门当前环节开展的地点</span>
+                                        <i class="icon-pointer"></i>
+                                    </div>
+                                </div>
+                                <div class="form-group form-md-line-input">
+                                    <textarea class="form-control" name="remark" ></textarea>
+                                    <label for="form-control">请在此更改你的模板信息</label>
+                                    <span class="help-block">注意: 本轮通过时所发送的短信模板</span>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" data-dismiss="modal" class="btn dark btn-outline">取消</button>
+                                <button type="submit" class="btn red" form="modify-circuit">保存</button>
                             </div>
                         </div>
                     </form>

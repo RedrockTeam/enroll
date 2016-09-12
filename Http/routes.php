@@ -33,6 +33,7 @@ Route::group(['prefix' => 'enroll'], function() {
         Route::post('/refresh/{dept}', 'Table\\ViewController@refresh')->where('dept', '[0-9]{1,2}|all|recycle');
         Route::post('/handle', 'Table\\EditController@handle');
         Route::post('/notify', 'Table\\ViewController@notify');
+        Route::post('/step', 'Table\\EditController@step');
         Route::post('/update', 'Table\\EditController@update');
         Route::post('/checkout', 'Table\\EditController@checkout');
         // 短信模块

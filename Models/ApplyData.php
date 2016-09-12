@@ -42,20 +42,21 @@ class ApplyData extends Model
     /**
      * 获取某个部门当前流程下的报名数据, 可分页
      *
-     * @param string           $department
-     * @param boolean          $recycle
-     * @param int              $page
-     * @param bool|integer     $perPage
-     * @param bool|callable    $filter
-     * @param array            $scope
+     * @param string        $department
+     * @param integer       $step
+     * @param boolean       $recycle
+     * @param int           $page
+     * @param bool|integer  $perPage
+     * @param bool|callable $filter
+     * @param array         $scope
      *
      * @return $this|\Illuminate\Support\Collection
      */
-    public function getDepartmentApplyDataWithPager($department, $recycle, $page, $perPage = false, $filter = false, $scope = ['*'])
+    public function getDepartmentApplyDataWithPager($department, $step, $recycle, $page, $perPage = false, $filter = false, $scope = ['*'])
     {
         /** @var \Illuminate\Database\Eloquent\Builder $query */
         $query = $this->where([
-            ['dept_name', 'LIKE', $department], ['current_step', $recycle ? '<' : '>', 0]
+            ['dept_name', 'LIKE', $department], $recycle ? ['current_step', '<' , 0] : ['current_step', '>=', $step]
         ])->orderBy('current_step', 'desc');
 
         if ($filter)

@@ -74,8 +74,6 @@ class ViewController extends Controller
             $request->session()->set('current_dept', $currentDept);
         }
 
-        Log::debug('Current Dept:' . $request->session()->get('current_dept'));
-
         // 载入首页所需要的数据
         $this->retrieveDepartmentStructure()->retrieveDepartmentLog();
 
@@ -85,7 +83,8 @@ class ViewController extends Controller
         return
             view('enroll::dashboard', [
                 'title' => '管理系统',
-                'department' => $request->session()->get('user_info')
+                'department' => $request->session()->get('user_info'),
+                'step' => self::$flown[self::$data['current_flow'][self::$data['dept_id']]['step']]
             ])->with('others', array_pull(self::$data, 'dept_structure'));
     }
 
@@ -140,8 +139,10 @@ class ViewController extends Controller
             $length = $request->json('length');
             $cursor = $request->json('start') / $length + 1;
 
+            $currentStep = $request->session()->get('current_flow.' . $currentDept)['step'];
+
             $count = $this->buildTableResponse(
-                $request, $this->collectApplyData($request, $deptName, $recycle, $length, $cursor)
+                $this->collectApplyData($request, $deptName, $recycle, $currentStep, $length, $cursor)
             );
         }
 
@@ -205,12 +206,13 @@ class ViewController extends Controller
      * @param Request $request
      * @param string  $department
      * @param boolean $recycle
+     * @param integer $step
      * @param integer $paginate
      * @param integer $cursor
      *
      * @return ApplyData
      */
-    protected function collectApplyData(Request $request, $department, $recycle, $paginate, $cursor)
+    protected function collectApplyData(Request $request, $department, $recycle, $step, $paginate, $cursor)
     {
         $apply = new ApplyData();
         $filter = false;
@@ -229,18 +231,16 @@ class ViewController extends Controller
             };
         }
 
-        return $apply->getDepartmentApplyDataWithPager($department, $recycle, $cursor, $paginate, $filter);
+        return $apply->getDepartmentApplyDataWithPager($department, $step, $recycle, $cursor, $paginate, $filter);
     }
 
     /**
      * 组装回传的Json信息
      *
-     * @param Request              $request
      * @param LengthAwarePaginator $data
-     *
      * @return array
      */
-    protected function buildTableResponse(Request $request, LengthAwarePaginator $data)
+    protected function buildTableResponse(LengthAwarePaginator $data)
     {
         if ($data->isEmpty()) {
             // 返回一个初始的空数组
@@ -255,10 +255,13 @@ class ViewController extends Controller
             $tmp = self::$records;
             $student = $item->withUser()->first();
 
-            if (($index = $item->getAttributeValue('current_step')) < 0) {
+            if (($index = $item->getAttributeValue('current_step')) < 0)
                 $flowName = self::$flown[(-$index)] . '未通过';
-            } else {
-                $flowName = '通过' . self::$flown[$index - 1];
+            else {
+                if ($index == 0)
+                    $flowName = '报名成功';
+                else
+                    $flowName = self::$flown[$index - 1] . '通过';
             }
 
             if ($item->getAttributeValue('was_send_sms') == 1)

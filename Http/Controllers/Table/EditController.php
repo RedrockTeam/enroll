@@ -115,15 +115,20 @@ class EditController extends Controller
             return response()->json(['status' => -13, 'content' => '下一流程的预定开启时间还未到, 无法切换到下一流程']);
 
         // 保存下一报名流程
-//        if ((new DepartmentLog())->setDepartmentCurrentStep($id, array_merge($current, ['step' => $oldCurrent + 1]))) {
-//            // 把所有未到当前流程的学生的状态设置为相反数
-//            DB::connection('apollo')->update(
-//                'UPDATE `apply_data_ex` SET `current_step` = 0 - `current_step` WHERE `current_step` < ? AND `current_step` > 0',
-//                [$oldCurrent + 1]
-//            );
-//
-//            return response()->json(['status' => 0, 'content' => '成功切换至下一流程。']);
-//        }
+        if ((new DepartmentLog())->setDepartmentCurrentStep($id, array_merge($current, ['step' => $oldCurrent + 1]))) {
+            // 把所有未到当前流程的学生的状态设置为相反数
+            DB::connection('apollo')->update(
+                'UPDATE `apply_data_ex` SET `current_step` = 0 - `current_step`, `was_send_sms` = 0 WHERE `current_step` < ? AND `current_step` > 0',
+                [$oldCurrent + 1]
+            );
+            // 并且重置发送短信的状态
+            DB::connection('apollo')->update(
+                'UPDATE `apply_data_ex` SET `was_send_sms` = 0 WHERE `current_step` == ?',
+                [$oldCurrent + 1]
+            );
+
+            return response()->json(['status' => 0, 'content' => '成功切换至下一流程。']);
+        }
     }
 
     /**
@@ -143,21 +148,20 @@ class EditController extends Controller
         if (!$request->session()->has('current_flow.' . $id))
             return response(['status' => -2, 'content' => '当前部门还未开启招新!']);
 
-        $current = $request->session()->get('current_flow')[$id]['step'];
+        $thisStep = $request->session()->get('current_flow')[$id]['step'];
         $finalStep = (new CircuitDesigns())->getDepartmentCurrentCircuit(
             $request->session()->get('user_info.dept_id'), ['total_step']
         )->getAttribute('total_step');
         // 设置下一个流程
-        $nextStep = $current == $finalStep ? $finalStep : $current + 1;
+        $nextStep = $thisStep == $finalStep ? $finalStep : $thisStep + 1;
 
         if (empty(($bag = $request->input('id')))) return ;
 
         foreach ($bag as $id => $switch) {
-            // TODO 考虑优化速度
             $data = ApplyData::find($id, ['enroll_id', 'current_step']); /** @var ApplyData $data */
             $step = $data->getAttributeValue('current_step');
 
-            if ($current >= $step) {
+            if ($thisStep >= $step) {
                 $data->setAttribute('current_step', $nextStep); // TODO 有必要考虑加日志
                 if (!$data->save())
                     return response()->json([
@@ -168,6 +172,60 @@ class EditController extends Controller
         }
 
         return response()->json(['status' => 0, 'content' => '以上同学已经成功通过本轮, 可以发送通知短信了!']);
+    }
+
+    /**
+     * 获取当前部门的地点和短信模板
+     */
+    public function step(Request $request)
+    {
+        if ($request->session()->has('is_admin'))
+            return response()->json(['status' => -99, 'content' => '服务器一脸傲娇地拒绝了你的请求']);
+
+        $id = $request->session()->get('user_info.dept_id');
+
+        if (!$request->session()->has('current_flow.' . $id))
+            return response(['status' => -2, 'content' => '当前部门还未开启招新!']);
+
+        $current = $request->session()->get('current_flow')[$id];
+
+        // 如果带有可修改的Token就跳转到修改函数中
+        if ($request->query->has('modify_token')
+            && $request->session()->get('modify_token') == $request->query('modify_token')
+        ) {
+            preg_match('/=([a-zA-Z0-9]+)\//', $request->cookie('enroll_master_credential'), $username);
+
+            // 删除Token
+            $request->session()->remove('modify_token');
+
+            return $this->modify($id, $request->only(['location', 'remark']), $current, array_last($username));
+        }
+
+        $token = uniqid('mkKey/', true);
+        // Session中存取Token
+        $request->session()->set('modify_token', $token);
+
+        return response()->json([
+            'status' => 0,
+            'content' => '成功读取当前部门的地点和短信模板',
+            'extra' => array_only($current, ['location', 'remark']),
+            'token' => $token
+        ]);
+    }
+
+    /**
+     * 更改当前部门的地点和短信模板
+     */
+    protected function modify($id, array $new, array $old, $author)
+    {
+        if (empty($new['location']) || empty($new['remark']))
+            return ;
+
+        // 替换地点和短信模板
+        $new = array_replace($old, $new);
+
+        if ((new DepartmentLog())->setDepartmentCurrentFlow($id, $new, $author))
+            return response()->json(['status' => 0, 'content' => '保存地点和短信模板成功']);
     }
 
     /**

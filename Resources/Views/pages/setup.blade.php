@@ -71,12 +71,17 @@
                                     </div>
                                 </div>
                                 <div class="form-group">
-                                    <label class="control-label col-md-4">所在地点
+                                    <div class="col-md-6">
+                                        <input type="hidden" class="form-control" name="location" />
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label class="control-label col-md-4">短信模板
                                         <span class="required"> * </span>
                                     </label>
                                     <div class="col-md-6">
-                                        <input type="text" class="form-control" name="location" />
-                                        <span class="help-block"> 环节开展的地点 </span>
+                                        <textarea class="form-control" name="remark" ></textarea>
+                                        <span class="help-block"> 本轮通过时所发送的短信模板 </span>
                                     </div>
                                 </div>
                             </div>

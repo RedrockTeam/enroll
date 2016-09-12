@@ -63,6 +63,24 @@ class DepartmentLog extends Model
     }
 
     /**
+     * 更改部门流程信息
+     *
+     * @param integer $id
+     * @param array   $step
+     * @param string  $by
+     *
+     * @return
+     */
+    public function setDepartmentCurrentFlow($id, array $step, $by)
+    {
+        return $this->where('which_having', '=', $id)->update([
+            'current_flow' => serialize($step),
+            'sms_template' => $step['remark'], // 发送的短信模板
+            'who_write' => $by,
+        ]);
+    }
+
+    /**
      * 保存当前部门所进行的环节流程
      *
      * @param integer $id

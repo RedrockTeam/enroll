@@ -36,6 +36,6 @@ class CircuitDesigns extends Model
      */
     public function getDepartmentCurrentCircuit($department, $scope = ['flow_structure', 'updated_at'])
     {
-        return $this->where('for_dept_id', '=', $department)->first($scope);
+        return $this->where('for_dept_id', '=', $department)->orderBy('created_at', 'desc')->first($scope);
     }
 }

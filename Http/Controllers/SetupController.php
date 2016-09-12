@@ -40,21 +40,33 @@ class SetupController extends Controller
     {
         $k = 0;
         $data = [];
+        $locate = [];
+        // 拉取输入数据
         $input = $request->json()->all();
         $inputLength = count($input);
-        $design = new CircuitDesigns();
 
         for ($i = 0; $i < $inputLength; $i += 4) {
-            foreach (['type', 'time', 'location', 'remark'] as $value)
-                $data[$k][$value] = array_shift($input)['value'];
+            foreach (['type', 'time', 'location', 'remark'] as $value) {
+                if ($value == 'location')
+                    array_push($locate, array_shift($input)['value']);
+                else
+                    $data[$k][$value] = array_shift($input)['value'];
+            }
 
             // 统计流程数量
             $k++;
         }
 
+        // 先弹出报名流程的空地址
+        array_shift($locate); $i = 0;
+        // 再依次加入到上一个流程的地址中
+        while ($k--)
+            $data[$i++]['location'] = array_shift($locate);
+
+        $design = new CircuitDesigns();
         // 保存环节流程为JSON字符串
         $design->setAttribute('flow_structure', serialize($data));
-        $design->setAttribute('total_step', $k);
+        $design->setAttribute('total_step', $i);
         // 记录日志
         $design->setAttribute('for_dept_id', $request->session()->get('user_info.dept_id'));
 
@@ -64,7 +76,7 @@ class SetupController extends Controller
         preg_match('/=([a-zA-Z0-9]+)\//', $request->cookie('enroll_master_credential'), $username);
         // 初始化报名流程
         (new DepartmentLog())->setDepartmentLog(
-            $design->getAttributeValue('for_dept_id'), array_merge(array_first($data), ['step' => 1]), 1000, array_last($username)
+            $design->getAttributeValue('for_dept_id'), array_merge(array_first($data), ['step' => 0]), 1000, array_last($username)
         );
     }
 }
