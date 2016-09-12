@@ -84,7 +84,7 @@ class ViewController extends Controller
             view('enroll::dashboard', [
                 'title' => '管理系统',
                 'department' => $request->session()->get('user_info'),
-                'step' => self::$flown[self::$data['current_flow'][self::$data['dept_id']]['step']]
+                'step' => $request->session()->has('is_admin') ? -1 : self::$flown[self::$data['current_flow'][self::$data['dept_id']]['step']]
             ])->with('others', array_pull(self::$data, 'dept_structure'));
     }
 

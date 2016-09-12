@@ -39,7 +39,7 @@
                             <div class="portlet light bordered">
                                 <div class="portlet-title">
                                     <div class="caption font-dark">
-                                        <span class="caption-subject bold uppercase">报名信息管理 | 目前处于 {{ $step }}环节</span>
+                                        <span class="caption-subject bold uppercase">报名信息管理 @if (!Session::has('is_admin')) | 目前处于{{ $step }}环节 @endif</span>
                                     </div>
                                     <div class="actions">
                                         <a class="btn btn-circle btn-icon-only btn-default fa fa-sign-out" href="/enroll/auth/logout"></a>
