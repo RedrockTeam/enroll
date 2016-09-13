@@ -69,7 +69,7 @@ class SMSController extends Controller
                 Log::error('##Enroll: 姓名为' . $item['name'] . ', 学号为' . $item['code'] . '的这位同学的信息不存在于数据库中');
             }
 
-            $this->dispatch((new SendCompleteSMS($student, $deptLog, $thisFlow, $deptName))->onQueue('sms')->delay(30));
+            dispatch((new SendCompleteSMS($student, $deptLog, $thisFlow, $deptName))->onQueue('sms')->delay(30));
         }
 
         return response()->json(['status' => 0, 'content' => '后台开始执行短信发送服务!']);
