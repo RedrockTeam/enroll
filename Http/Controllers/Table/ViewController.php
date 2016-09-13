@@ -140,7 +140,7 @@ class ViewController extends Controller
             $cursor = $request->json('start') / $length + 1;
 
             $currentStep = $request->session()->get('current_flow.' . $currentDept)['step'] ? : 0;
-            
+
             $count = $this->buildTableResponse(
                 $this->collectApplyData($request, $deptName, $recycle, $currentStep, $length, $cursor)
             );
