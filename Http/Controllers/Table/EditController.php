@@ -111,7 +111,7 @@ class EditController extends Controller
 
         $current = unserialize($structures['flow_structure'])[$oldCurrent + 1];
 
-        if (Carbon::createFromFormat('Y-m-d', $current['time'])->diffInDays() > 0)
+        if (Carbon::createFromFormat('Y-m-d', $current['time']) > Carbon::createFromTimestamp(time()))
             return response()->json(['status' => -13, 'content' => '下一流程的预定开启时间还未到, 无法切换到下一流程']);
 
         // 保存下一报名流程
@@ -123,7 +123,7 @@ class EditController extends Controller
             );
             // 并且重置发送短信的状态
             DB::connection('apollo')->update(
-                'UPDATE `apply_data_ex` SET `was_send_sms` = 0 WHERE `current_step` == ?',
+                'UPDATE `apply_data_ex` SET `was_send_sms` = 0 WHERE `current_step` = ?',
                 [$oldCurrent + 1]
             );
 
