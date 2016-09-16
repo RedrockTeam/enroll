@@ -23,6 +23,8 @@ Route::group(['prefix' => 'enroll'], function() {
     // 主要模块
     Route::get('/index', function () { return view('enroll::index'); });
     Route::get('/setup', 'SetupController@index')->middleware('enroll.auth');
+    Route::get('/score', 'ScoreController@render')->middleware('enroll.auth');
+    Route::post('/score', 'ScoreController@write')->middleware('enroll.auth');
     Route::get('/dashboard', 'Table\\ViewController@index')->middleware(['enroll.auth', 'enroll.setup']);
     // 表单api
     Route::group(['prefix' => 'api', 'middleware' => [/** 'enroll.auth',  */'enroll.hold']], function () {
