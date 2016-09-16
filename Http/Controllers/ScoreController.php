@@ -36,6 +36,11 @@ class ScoreController extends Controller
 
         $user = Sinnjinn::find($request->input('id')); /** @var Sinnjinn $user */
 
+        $score = $request->input('score');
+
+        if (!is_numeric($score) || $score < 0 || $score > 100)
+            return response()->json(['status' => -1, 'content' => '分数填写不正确']);
+
         if (!is_null($user)) {
             $user->setAttribute('score', $request->input('score'));
             if ($user->save())
