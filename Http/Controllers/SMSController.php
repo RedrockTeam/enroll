@@ -21,7 +21,7 @@ class SMSController extends Controller
      *
      * @var string
      */
-    protected static $apiKey = 'api:key-b761c24f77fc5d77769d5a442ccacc10';
+    protected static $apiKey = 'api:key';
 
     /**
      * 短信发送地址
